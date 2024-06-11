@@ -4,7 +4,7 @@
 start_time=$(date +%s%6N)
 
 # Run the program
-./cmake-build-debug/dp
+./cmake-build-debug/dfs
 
 # Get the end time in microseconds
 end_time=$(date +%s%6N)

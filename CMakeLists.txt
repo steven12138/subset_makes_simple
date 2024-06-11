@@ -8,6 +8,7 @@ set(DATA_DIR ${CMAKE_SOURCE_DIR}/data)
 add_executable(dfs src/dfs.cpp)
 add_executable(dp src/dp.cpp)
 add_executable(paper src/paper.cpp)
+add_executable(fft src/fft.cpp)
 
 
 add_custom_target(copy_data ALL

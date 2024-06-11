@@ -20,6 +20,9 @@ void dfs(int u, ll sum) {
             return;
         cout << "sum: " << sum << endl;
         for (int i = 1; i <= n; i++)
+            if (choose[i]) cout << seq[i] << " ";
+        cout << endl;
+        for (int i = 1; i <= n; i++)
             cout << choose[i];
         cout << endl;
         return;
