@@ -2,15 +2,12 @@
 #include <vector>
 #include <complex>
 #include <cmath>
-#include <set>
-
-using namespace std;
+#include <algorithm>
 
 using namespace std;
 using cd = complex<double>;
 const double PI = acos(-1);
 
-// 快速傅里叶变换（FFT）
 void fft(vector<cd> &a, bool invert) {
     int n = a.size();
     if (n == 1) return;
@@ -20,7 +17,6 @@ void fft(vector<cd> &a, bool invert) {
         a0[i] = a[i * 2];
         a1[i] = a[i * 2 + 1];
     }
-
     fft(a0, invert);
     fft(a1, invert);
 
@@ -37,141 +33,172 @@ void fft(vector<cd> &a, bool invert) {
     }
 }
 
-// 多项式乘法
-vector<int> multiply(const vector<int> &a, const vector<int> &b) {
+vector<cd> multiply(const vector<cd> &a, const vector<cd> &b) {
     vector<cd> fa(a.begin(), a.end()), fb(b.begin(), b.end());
-    size_t n = 1;
-    while (n < a.size() + b.size()) n <<= 1;
+    int n = 1;
+    while (n < a.size() + b.size())
+        n <<= 1;
     fa.resize(n);
     fb.resize(n);
 
     fft(fa, false);
     fft(fb, false);
-    for (size_t i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
         fa[i] *= fb[i];
-    }
     fft(fa, true);
 
-    vector<int> result(n);
-    for (size_t i = 0; i < n; i++) {
-        result[i] = round(fa[i].real());
-    }
-    return result;
+    return fa;
 }
 
-vector<pair<int, int> > pointwise_pairwise_sums(const vector<pair<int, int> > &S, const vector<pair<int, int> > &T,
-                                                int u, int v) {
-    vector<vector<int> > fS(u + 1, vector<int>(v + 1, 0)), fT(u + 1, vector<int>(v + 1, 0));
-    for (auto p: S) {
-        if (p.first <= u && p.second <= v) {
-            fS[p.first][p.second] = 1;
-        }
+vector<int> computeXorU(const vector<int> &S, const vector<int> &T, int u) {
+    vector<cd> fS(u + 1), fT(u + 1);
+
+    // Build the characteristic polynomials
+    for (int s: S) {
+        if (s <= u) fS[s] = 1;
     }
-    for (auto p: T) {
-        if (p.first <= u && p.second <= v) {
-            fT[p.first][p.second] = 1;
-        }
+    for (int t: T) {
+        if (t <= u) fT[t] = 1;
     }
 
-    vector<int> flatS((u + 1) * (v + 1), 0), flatT((u + 1) * (v + 1), 0);
-    for (int i = 0; i <= u; i++) {
-        for (int j = 0; j <= v; j++) {
-            flatS[i * (v + 1) + j] = fS[i][j];
-            flatT[i * (v + 1) + j] = fT[i][j];
-        }
-    }
+    // Multiply the polynomials using FFT
+    vector<cd> g = multiply(fS, fT);
 
-    vector<int> result_poly = multiply(flatS, flatT);
-    vector<pair<int, int> > result;
-    for (int i = 0; i <= u; i++) {
-        for (int j = 0; j <= v; j++) {
-            if (result_poly[i * (v + 1) + j] > 0) {
-                result.push_back({i, j});
-            }
-        }
-    }
-    return result;
-}
-
-vector<int> subset_pairwise_sums(const vector<int> &S, const vector<int> &T, int u) {
-    vector<int> fS(u + 1, 0), fT(u + 1, 0);
-    for (int x: S) {
-        if (x <= u) {
-            fS[x] = 1;
-        }
-    }
-    for (int x: T) {
-        if (x <= u) {
-            fT[x] = 1;
-        }
-    }
-
-    vector<int> result_poly = multiply(fS, fT);
+    // Extract the result
     vector<int> result;
-    for (int i = 0; i <= u; i++) {
-        if (result_poly[i] > 0) {
+    for (int i = 0; i <= u; ++i) {
+        if (round(g[i].real()) > 0) {
             result.push_back(i);
         }
     }
+
     return result;
 }
 
-void test_subset_pairwise_sums() {
-    vector<int> S = {1, 3, 4};
-    vector<int> T = {2, 3, 5};
-    int u = 10;
+vector<int> computeMultipleXorU(const vector<vector<int> > &sets, int u) {
+    if (sets.empty()) return {};
 
-    vector<int> expected_result = {3, 4, 5, 6, 7, 8, 9}; // 手工计算得到的期望结果
-    vector<int> result = subset_pairwise_sums(S, T, u);
-
-    cout << "subset_pairwise_sums result: ";
-    for (int x: result) {
-        cout << x << " ";
+    vector<int> result = sets[0];
+    for (size_t i = 1; i < sets.size(); ++i) {
+        result = computeXorU(result, sets[i], u);
     }
-    cout << endl;
 
-    // 验证结果
-    if (result.size() != expected_result.size() || !equal(result.begin(), result.end(), expected_result.begin())) {
-        cout << "Test failed!" << endl;
-    } else {
-        cout << "Test passed!" << endl;
-    }
+    return result;
 }
 
-// 测试 pointwise_pairwise_sums 函数
-void test_pointwise_pairwise_sums() {
-    vector<pair<int, int> > S = {{1, 2}, {2, 3}, {3, 4}};
-    vector<pair<int, int> > T = {{1, 1}, {2, 2}, {3, 3}};
-    int u = 5;
-    int v = 5;
 
-    vector<pair<int, int> > expected_result = {{2, 3}, {3, 4}, {4, 5}, {4, 6}, {5, 5}, {5, 7}, {6, 6}, {6, 8}};
-    vector<pair<int, int> > result = pointwise_pairwise_sums(S, T, u, v);
+using S2d = vector<pair<int, int> >;
+// 计算二维集合 S ⊕u T
+S2d computeXorU(const S2d& S, const S2d& T, int u, int v) {
+    int max_u = max(u, v);
+    int n = 1;
+    while (n < 2 * max_u) n <<= 1;
 
-    cout << "pointwise_pairwise_sums result: ";
-    for (auto p: result) {
-        cout << "(" << p.first << ", " << p.second << ") ";
+    vector<cd> fS_x(n, 0), fT_x(n, 0);
+    vector<cd> fS_y(n, 0), fT_y(n, 0);
+
+    // 构造一维多项式
+    for (const auto& p : S) {
+        fS_x[p.first] += 1;
+        fS_y[p.second] += 1;
     }
-    cout << endl;
-
-    // 将结果转换为集合以便于比较
-    set<pair<int, int> > result_set(result.begin(), result.end());
-    set<pair<int, int> > expected_set(expected_result.begin(), expected_result.end());
-
-    // 验证结果
-    if (result_set != expected_set) {
-        cout << "Test failed!" << endl;
-    } else {
-        cout << "Test passed!" << endl;
+    for (const auto& p : T) {
+        fT_x[p.first] += 1;
+        fT_y[p.second] += 1;
     }
+
+    // 计算乘积
+    vector<cd> g_x = multiply(fS_x, fT_x);
+    vector<cd> g_y = multiply(fS_y, fT_y);
+
+    S2d result;
+    for (int i = 0; i < 2 * u; ++i) {
+        for (int j = 0; j < 2 * v; ++j) {
+            if (round(g_x[i].real()) > 0 && round(g_y[j].real()) > 0) {
+                result.emplace_back(i, j);
+            }
+        }
+    }
+
+    return result;
 }
+
+
+S2d convert_to_S2d(int x) { return {{0, 0}, {x, 1}}; }
+
+S2d AllSubsetSums_sharp(const std::vector<int> &S, int u) {
+    // 基准情况：如果 S 只有一个元素
+    if (S.size() == 1) {
+        return convert_to_S2d(S[0]);
+    }
+
+    // 将 S 分解为两个子集 T 和 S \ T
+    int n = S.size();
+    int half = n / 2;
+    std::vector<int> T(S.begin(), S.begin() + half);
+    std::vector<int> S_minus_T(S.begin() + half, S.end());
+
+    // 递归计算
+    S2d subset_sums_T = AllSubsetSums_sharp(T, u);
+    S2d subset_sums_S_minus_T = AllSubsetSums_sharp(S_minus_T, u);
+
+    // 合并结果
+    return computeXorU(subset_sums_T, subset_sums_S_minus_T, u, u);
+}
+
+
+vector<int> AllSubsetSums(const vector<int> &S, int u) {
+    int n = S.size();
+    int b = floor(sqrt(n * log(n)));
+    vector<vector<int> > R(b);
+
+    for (int ell = 0; ell < b; ++ell) {
+        vector<int> S_ell;
+        for (int x: S) {
+            if (x % b == ell) {
+                S_ell.push_back(x);
+            }
+        }
+
+        vector<int> Q_ell;
+        for (int x: S_ell) {
+            Q_ell.push_back((x - ell) / b);
+        }
+
+        S2d S_u_div_b_sharp_Q_ell = AllSubsetSums_sharp(Q_ell, u / b);
+
+        for (const auto &p: S_u_div_b_sharp_Q_ell) {
+            int z = p.first;
+            int j = p.second;
+            R[ell].push_back(z * b + j * ell);
+        }
+    }
+
+    // Combine all R_ell sets using the provided logic
+    vector<int> result = R[0];
+    for (int i = 1; i < b; ++i) {
+        result = computeXorU(result, R[i], u);
+    }
+
+    return result;
+}
+
 
 int main() {
-    // 测试 subset_pairwise_sums
-    test_subset_pairwise_sums();
+    freopen("data/in.in", "r", stdin);
+    int n, u;
+    std::cin >> n >> u;
 
-    // 测试 pointwise_pairwise_sums
-    test_pointwise_pairwise_sums();
+    std::vector<int> S(n);
+    for (int i = 0; i < n; ++i) {
+        std::cin >> S[i];
+    }
+
+    vector<int> result = AllSubsetSums(S, u);
+
+    // for (const auto &p: result) {
+    //     std::cout << p << std::endl;
+    // }
 
     return 0;
 }

@@ -148,7 +148,7 @@ S2d circle_add(S2d &&a, S2d &&b) {
 
 S2d convert_to_S2d(int x) { return {{0, 0}, {x, 1}}; }
 
-S2d AllSubsetSums(const std::vector<int> &S, int u) {
+S2d AllSubsetSums_sharp(const std::vector<int> &S, int u) {
     // 基准情况：如果 S 只有一个元素
     if (S.size() == 1) {
         return convert_to_S2d(S[0]);
@@ -161,14 +161,16 @@ S2d AllSubsetSums(const std::vector<int> &S, int u) {
     std::vector<int> S_minus_T(S.begin() + half, S.end());
 
     // 递归计算
-    S2d subset_sums_T = AllSubsetSums(T, u);
-    S2d subset_sums_S_minus_T = AllSubsetSums(S_minus_T, u);
+    S2d subset_sums_T = AllSubsetSums_sharp(T, u);
+    S2d subset_sums_S_minus_T = AllSubsetSums_sharp(S_minus_T, u);
 
     // 合并结果
     return circle_add(std::move(subset_sums_T), std::move(subset_sums_S_minus_T));
 }
 
 int main() {
+
+    freopen("data/in.in", "r", stdin);
     int n, u;
     std::cin >> n >> u;
 
@@ -177,7 +179,7 @@ int main() {
         std::cin >> S[i];
     }
 
-    S2d result = AllSubsetSums(S, u);
+    S2d result = AllSubsetSums_sharp(S, u);
 
     for (const auto &p: result) {
         std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;

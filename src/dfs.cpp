@@ -20,9 +20,6 @@ void dfs(int u, ll sum) {
             return;
         cout << "sum: " << sum << endl;
         for (int i = 1; i <= n; i++)
-            if (choose[i]) cout << seq[i] << " ";
-        cout << endl;
-        for (int i = 1; i <= n; i++)
             cout << choose[i];
         cout << endl;
         return;
@@ -35,17 +32,13 @@ void dfs(int u, ll sum) {
 
 
 int main(int argc, char *argv[]) {
-    freopen("data/1.in", "r", stdin);
+    freopen("data/in.in", "r", stdin);
 
-    int t = 7;
-    while (t--) {
-        memset(seq, 0, sizeof(seq));
-        memset(choose, 0, sizeof(choose));
-        cin >> n >> m;
-        for (int i = 1; i <= n; i++) {
-            cin >> seq[i];
-        }
-        dfs(1, 0);
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++) {
+        cin >> seq[i];
+        cout << seq[i] << endl;
     }
+    dfs(1, 0);
     return 0;
 }
